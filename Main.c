@@ -10,50 +10,24 @@ static void *GetPEBBase() {
 }
 
 static void *GetDLLBase(void *PEBBase, unsigned int ModuleHash) {
-	unsigned char *LDRData = *(unsigned char**)((unsigned char*)PEBBase + 0x18);
-	unsigned char *InLoadOrderList = LDRData + 0x20;
-	unsigned char *CurrentListEntry = *(unsigned char**)(InLoadOrderList);
-	for (; CurrentListEntry && CurrentListEntry != InLoadOrderList; CurrentListEntry = *(unsigned char**)(CurrentListEntry)) {
-		unsigned char *ModuleEntry = CurrentListEntry - 0x10;
-		void *ModuleBase = *(void**)(ModuleEntry + 0x30);
-		unsigned short NameLengthBytes = *(unsigned short*)(ModuleEntry + 0x58);
-		unsigned short *NameBuffer = *(unsigned short**)(ModuleEntry + 0x60);
-		int NameLengthChars = (int)(NameLengthBytes >> 1);
-		unsigned int ModuleHashCalc = 5381u;
-		for (int NameIndex = 0; NameIndex < NameLengthChars; ++NameIndex) {
-			unsigned char NameChar = (unsigned char)NameBuffer[NameIndex];
-			ModuleHashCalc = ((ModuleHashCalc << 5) + ModuleHashCalc) + (unsigned int)NameChar;
-		}
-		if (ModuleHashCalc == ModuleHash) {
-			return ModuleBase;
-		}
+	unsigned char *ModulesListEntry = *(unsigned char**)(*(unsigned char**)((unsigned char*)PEBBase + 0x18) + 0x20);
+	for (;ModulesListEntry && ModulesListEntry != *(unsigned char**)((unsigned char*)PEBBase + 0x18) + 0x20; ModulesListEntry = *(unsigned char**)(ModulesListEntry)) {
+		unsigned short *NameBuffer = *(unsigned short**)(ModulesListEntry + 0x50);
+		int NameIndex, NameLength = *(unsigned short*)(ModulesListEntry + 0x48) >> 1;
+		unsigned int ModuleHashCalc = 5381;
+		for (NameIndex = 0; NameIndex < NameLength; ++NameIndex) ModuleHashCalc = (ModuleHashCalc * 33) + NameBuffer[NameIndex];
+		if (ModuleHashCalc == ModuleHash) return *(void**)(ModulesListEntry + 0x20);
 	}
-	return 0;
 }
 
 static void *GetExportAddress(void *ModuleBase, unsigned int ExportHash) {
-	unsigned int PEHeaderOffset = *(unsigned int*)(ModuleBase + 0x3C);
-	unsigned char *OptionalHeader = ModuleBase + PEHeaderOffset + 4 + 20;
-	unsigned short Magic = *(unsigned short*)OptionalHeader;
-	unsigned char *DataDirectory = (Magic == 0x20B ? OptionalHeader + 0x70 : OptionalHeader + 0x60);
-	unsigned char *ExportDirectory = ModuleBase + *(unsigned int*)DataDirectory;
-	unsigned int NumberOfNames = *(unsigned int*)(ExportDirectory + 0x18);
-	unsigned int AddressOfFunctionsRVA = *(unsigned int*)(ExportDirectory + 0x1C);
-	unsigned int AddressOfNamesRVA = *(unsigned int*)(ExportDirectory + 0x20);
-	unsigned int AddressOfNameOrdinalsRVA = *(unsigned int*)(ExportDirectory + 0x24);
-	for (unsigned int Index = 0; Index < NumberOfNames; Index++) {
-		const unsigned char *Name = (const unsigned char*)(ModuleBase + *(unsigned int*)(ModuleBase + AddressOfNamesRVA + Index * 4));
-		unsigned int ExportHashCalc = 5381u;
-		for (const unsigned char *Ptr = Name; *Ptr; ++Ptr) {
-			ExportHashCalc = ((ExportHashCalc << 5) + ExportHashCalc) + (unsigned int)(*Ptr);
-		}
-		if (ExportHashCalc == ExportHash) {
-			unsigned short Ordinal = *(unsigned short*)(ModuleBase + AddressOfNameOrdinalsRVA + Index * 2);
-			void *Address = ModuleBase + *(unsigned int*)(ModuleBase + AddressOfFunctionsRVA + Ordinal * 4);
-			return Address;
-		}
+	unsigned char *OptionalHeader = ModuleBase + *(unsigned int*)(ModuleBase + 0x3C) + 24;
+	unsigned char *ExportDirectory = ModuleBase + *(unsigned int*)(*(unsigned short*)OptionalHeader == 0x20B ? OptionalHeader + 0x70 : OptionalHeader + 0x60);
+	for (unsigned int Index = 0; Index < *(unsigned int*)(ExportDirectory + 0x18); Index++) {
+		unsigned int ExportHashCalc = 5381;
+		for (const unsigned char *Ptr = (const unsigned char*)(ModuleBase + *(unsigned int*)(ModuleBase + *(unsigned int*)(ExportDirectory + 0x20) + Index * 4)); *Ptr; ++Ptr) ExportHashCalc = ((ExportHashCalc << 5) + ExportHashCalc) + (unsigned int)(*Ptr);
+		if (ExportHashCalc == ExportHash) return ModuleBase + *(unsigned int*)(ModuleBase + *(unsigned int*)(ExportDirectory + 0x1C) + *(unsigned short*)(ModuleBase + *(unsigned int*)(ExportDirectory + 0x24) + Index * 2) * 4);
 	}
-	return 0;
 }
 
 // FOR PRINTF
@@ -71,30 +45,23 @@ int EntryPoint() {
 	void *NTDLLBase = GetDLLBase(PEBBase, 0x22D3B5ED); // "ntdll.dll"
 
 	// Get required functions
-	void *CreateProcessAPointer = GetExportAddress(Kernel32Base, 0xAEB52E19); // "CreateProcessA"
 	typedef int (*CreateProcessAType)(const char *lpApplicationName, char *lpCommandLine, void *lpProcessAttributes, void *lpThreadAttributes, int bInheritHandles, unsigned long dwCreationFlags, void *lpEnvironment, const char *lpCurrentDirectory, void *lpStartupInfo, void *lpProcessInformation);
-	CreateProcessAType CreateProcessA = (CreateProcessAType)CreateProcessAPointer;
+	CreateProcessAType CreateProcessA = (CreateProcessAType)GetExportAddress(Kernel32Base, 0xAEB52E19); // "CreateProcessA"
 
-	void *ReadProcessMemoryPointer = GetExportAddress(Kernel32Base, 0xB8932459); // "ReadProcessMemory"
 	typedef int (*ReadProcessMemoryType)(void *hProcess, const void *lpBaseAddress, void *lpBuffer, unsigned long nSize, unsigned long *lpNumberOfBytesRead);
-	ReadProcessMemoryType ReadProcessMemory = (ReadProcessMemoryType)ReadProcessMemoryPointer;
+	ReadProcessMemoryType ReadProcessMemory = (ReadProcessMemoryType)GetExportAddress(Kernel32Base, 0xB8932459); // "ReadProcessMemory"
 
-	void *TerminateProcessPointer = GetExportAddress(Kernel32Base, 0x60AF076D); // "TerminateProcess"
 	typedef int (*TerminateProcessType)(void *hProcess, unsigned int uExitCode);
-	TerminateProcessType TerminateProcess = (TerminateProcessType)TerminateProcessPointer;
+	TerminateProcessType TerminateProcess = (TerminateProcessType)GetExportAddress(Kernel32Base, 0x60AF076D); // "TerminateProcess"
 
 	// FOR PRINTF
-	void *LoadLibraryAPointer = GetExportAddress(Kernel32Base, 0x5FBFF0FB); // "LoadLibraryA"
 	typedef void *(*LoadLibraryAType)(const char *lpLibFileName);
-	LoadLibraryAType LoadLibraryA = (LoadLibraryAType)LoadLibraryAPointer;
+	LoadLibraryAType LoadLibraryA = (LoadLibraryAType)GetExportAddress(Kernel32Base, 0x5FBFF0FB); // "LoadLibraryA"
 
-	LoadLibraryA(CLibrary);
+	void *MSVCRTBaseAddress = LoadLibraryA(CLibrary);
 
-	void *MSVCRTBaseAddress = GetDLLBase(PEBBase, 0x7A21064E); // "MSVCRT.DLL"
-
-	void *PrinterPointer = GetExportAddress(MSVCRTBaseAddress, 0x156B2BB8); // "printf"
 	typedef int (*printfType)(const char *, ...);
-	printfType printf = (printfType)PrinterPointer;
+	printfType printf = (printfType)GetExportAddress(MSVCRTBaseAddress, 0x156B2BB8); // "printf"
 
 	// Create suspended process
 	PROCESS_INFORMATION ProcessInfo;
@@ -112,14 +79,9 @@ int EntryPoint() {
 	IMAGE_NT_HEADERS64 NTHeaders;
 	ReadProcessMemory(ProcessHandle, (const void *)((unsigned long long)NTDLLBase + DOSHeader.e_lfanew), &NTHeaders, (unsigned long)sizeof(NTHeaders), &BytesReadLocal);
 
-	unsigned long ExportRVA = NTHeaders.OptionalHeader.DataDirectory[0].VirtualAddress;
-
 	// Read the process export directory
 	IMAGE_EXPORT_DIRECTORY ExportDirectory;
-	ReadProcessMemory(ProcessHandle, (const void *)((unsigned long long)NTDLLBase + ExportRVA), &ExportDirectory, (unsigned long)sizeof(ExportDirectory), &BytesReadLocal);
-
-	unsigned int NumberOfNames = (unsigned int)ExportDirectory.NumberOfNames;
-	unsigned int NumberOfFunctions = (unsigned int)ExportDirectory.NumberOfFunctions;
+	ReadProcessMemory(ProcessHandle, (const void *)((unsigned long long)NTDLLBase + NTHeaders.OptionalHeader.DataDirectory[0].VirtualAddress), &ExportDirectory, (unsigned long)sizeof(ExportDirectory), &BytesReadLocal);
 
 	// 64 should be long enough to survive the feared NtConvertBetweenAuxiliaryCounterAndPerformanceCounter
 	char ExportNameBuffer[64];
@@ -129,7 +91,7 @@ int EntryPoint() {
 	unsigned long BytesRead = 0;
 
 	// Print the service number of every Nt export in the suspended process NTDLL
-	for (unsigned int Index = 0; Index < NumberOfNames; ++Index) {
+	for (unsigned int Index = 0; Index < (unsigned int)ExportDirectory.NumberOfNames; ++Index) {
 		// NTDLL base of the suspended process should be the same as this process.
 		ReadProcessMemory(ProcessHandle, (const void *)((unsigned long long)NTDLLBase + ExportDirectory.AddressOfNames + Index * sizeof(unsigned int)), &NameRVA, (unsigned long)sizeof(unsigned int), &BytesRead);
 
@@ -153,5 +115,4 @@ int EntryPoint() {
 
 	// Terminate the suspended process
 	TerminateProcess(ProcessHandle, 0);
-	return 3;
 }
