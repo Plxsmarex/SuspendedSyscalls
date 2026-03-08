@@ -17,7 +17,7 @@ SuspendedSyscalls will create a process and suspend it, by doing this, EDRs and 
 
 For this example, it will just print every Nt export and its syscall number, however it could be modified to do stuff like using the newly acquired numbers to inject shellcode into the suspended process using syscalls.
 
-SuspendedSyscalls uses my Shellcode-Toolkit library, meaning it also compiles a small 1056 byte position independent flat binary file, and a tiny 2048 bytes executable file.
+SuspendedSyscalls uses my Shellcode-Toolkit library, meaning it also compiles a small 1008 byte position independent flat binary file, and a tiny 1536 bytes executable file.
 
 # Potential issues
 SuspendedSyscalls itself could be detected using API hooking/monitoring, as it requires CreateProcessA and ReadProcessMemory to get the syscall numbers.
