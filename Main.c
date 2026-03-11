@@ -18,6 +18,7 @@ static void *GetDLLBase(void *PEBBase, unsigned int ModuleHash) {
 		for (NameIndex = 0; NameIndex < NameLength; ++NameIndex) ModuleHashCalc = (ModuleHashCalc * 33) + NameBuffer[NameIndex];
 		if (ModuleHashCalc == ModuleHash) return *(void**)(ModulesListEntry + 0x20);
 	}
+	return 0;
 }
 
 static void *GetExportAddress(void *ModuleBase, unsigned int ExportHash) {
@@ -28,6 +29,7 @@ static void *GetExportAddress(void *ModuleBase, unsigned int ExportHash) {
 		for (const unsigned char *Ptr = (const unsigned char*)(ModuleBase + *(unsigned int*)(ModuleBase + *(unsigned int*)(ExportDirectory + 0x20) + Index * 4)); *Ptr; ++Ptr) ExportHashCalc = ((ExportHashCalc << 5) + ExportHashCalc) + (unsigned int)(*Ptr);
 		if (ExportHashCalc == ExportHash) return ModuleBase + *(unsigned int*)(ModuleBase + *(unsigned int*)(ExportDirectory + 0x1C) + *(unsigned short*)(ModuleBase + *(unsigned int*)(ExportDirectory + 0x24) + Index * 2) * 4);
 	}
+	return 0;
 }
 
 // FOR PRINTF
