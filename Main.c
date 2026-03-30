@@ -35,8 +35,8 @@ createstring char Process_To_Suspend[]      = "notepad.exe";
 
 // Info printing
 createstring char Print_All_SysNumbers[]    = "%s: 0x%x\n";
-createstring char Print_Sys_Info[]          = "\nNtQueryInformationProcess:  number: 0x%x  address: 0x%x\nNtReadVirtualMemory:        number: 0x%x  address: 0x%x\nNtProtectVirtualMemory:     number: 0x%x  address: 0x%x\nNtWriteVirtualMemory:       number: 0x%x  address: 0x%x\nNtResumeThread:             number: 0x%x  address: 0x%x\n\n";
-createstring char Print_Entry_Point[]       = "Main module entry point: 0x%llx\n";
+createstring char Print_Sys_Info[]          = "\nNtQueryInformationProcess:  number: 0x%x  address: 0x%p\nNtReadVirtualMemory:        number: 0x%x  address: 0x%p\nNtProtectVirtualMemory:     number: 0x%x  address: 0x%p\nNtWriteVirtualMemory:       number: 0x%x  address: 0x%p\nNtResumeThread:             number: 0x%x  address: 0x%p\n\n";
+createstring char Print_Entry_Point[]       = "Main module entry point: 0x%p\n";
 
 // Syscall error debugging
 createstring char Invalid_Syscall_Data[]    = "ERROR: A syscall number or instruction was invalid";
