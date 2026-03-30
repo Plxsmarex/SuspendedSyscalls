@@ -1,5 +1,5 @@
 # SuspendedSyscalls
-Extracting clean syscall numbers from a suspended process before injecting shellcode into it using indirect syscalls
+Extracting clean syscall numbers from a suspended process before injecting shellcode into it using indirect syscalls.
 
 # Windows system calls
 To execute a syscall on Windows, you need the system service number (Also known as syscall numbers), the issue with this is that they can be different on versions of the operating system, so it's not safe to hardcode them.
