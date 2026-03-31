@@ -67,9 +67,9 @@ int main()
 	}
 
 	// Get the addresses of the main modules
-	void *Address_PEB = GetPEBAddress();
+	void *Address_PEB      = GetPEBAddress();
 	void *Address_KERNEL32 = GetModuleAddress(Address_PEB, 0x76918253); // "KERNEL32.DLL"
-	void *Address_NTDLL = GetModuleAddress(Address_PEB, 0x5602B4CB); // "ntdll.dll"
+	void *Address_NTDLL    = GetModuleAddress(Address_PEB, 0x5602B4CB); // "ntdll.dll"
 	if (!Address_KERNEL32 || !Address_NTDLL)
 	{
 		return 1;
