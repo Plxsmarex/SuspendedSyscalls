@@ -30,9 +30,11 @@ This injection method is effective as it lets us execute the payload in backed m
 SuspendedSyscalls also uses my Shellcode-Toolkit library, meaning it also compiles a compact 3840 byte position independent flat binary file, as well as a 4608 bytes executable file.
 
 SuspendedSyscalls in action:
+
 <img width="876" height="562" alt="SuspendedSyscalls_in_action" src="https://github.com/user-attachments/assets/20215bff-cca1-4185-bb7f-f4d9251bfa48" />
 
 Injecting SuspendedSyscalls' shellcode form into Microsoft Edge, doing the extraction and injection while impersonating a legitimate process:
+
 <img width="771" height="441" alt="malware_edge" src="https://github.com/user-attachments/assets/ad83b347-0f73-4ab5-ba2e-4d626e6221f2" />
 
 # Potential issues
