@@ -27,7 +27,7 @@ Continuing to **SuspendedSyscalls**, now we will use `indirect syscalls` to get 
 
 This injection method is effective as it lets us execute the payload in **backed memory**, which can bypass a lot of detection, and the process of performing it is less known than more common methods like allocating memory and creating a thread.
 
-**SuspendedSyscalls** also uses my **Shellcode-Toolkit** library, meaning it also compiles a compact `3840` byte position independent flat binary file, as well as a `4608` bytes executable file.
+**SuspendedSyscalls** also uses my **Shellcode-Toolkit** library, meaning it also compiles a compact `3776` byte position independent flat binary file, as well as a `4608` bytes executable file.
 
 **SuspendedSyscalls** in action:
 
